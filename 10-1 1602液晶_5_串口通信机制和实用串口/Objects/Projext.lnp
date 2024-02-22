@@ -1,0 +1,5 @@
+".\Objects\Lcd1602.obj",
+".\Objects\main.obj",
+".\Objects\Uart.obj" 
+TO ".\Objects\Projext" 
+PRINT(".\Listings\Projext.m51")

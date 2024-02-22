@@ -1,0 +1,229 @@
+C51 COMPILER V9.54   MAIN                                                                  02/17/2024 21:41:28 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\software\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          
+   2          #include <reg52.h>
+   3          
+   4          sbit DS1302_CE = P1^7;
+   5          sbit DS1302_CK = P3^5;
+   6          sbit DS1302_IO = P3^4;
+   7          
+   8          bit flag200ms = 0;       //200ms定时标志
+   9          unsigned char T0RH = 0;  //T0重载值的高字节
+  10          unsigned char T0RL = 0;  //T0重载值的低字节
+  11          
+  12          void ConfigTimer0(unsigned int ms);
+  13          void InitDS1302();
+  14          void DS1302BurstRead(unsigned char *dat);
+  15          extern void InitLcd1602();
+  16          extern void LcdShowStr(unsigned char x, unsigned char y, unsigned char *str);
+  17          
+  18          void main()
+  19          {
+  20   1          unsigned char psec=0xAA;  //秒备份，初值AA确保首次读取时间后会刷新显示
+  21   1          unsigned char time[8];    //当前时间数组
+  22   1          unsigned char str[12];    //字符串转换缓冲区
+  23   1      
+  24   1          EA = 1;           //开总中断
+  25   1          ConfigTimer0(1);  //T0定时1ms
+  26   1          InitDS1302();     //初始化实时时钟
+  27   1          InitLcd1602();    //初始化液晶
+  28   1          
+  29   1          while (1)
+  30   1          {
+  31   2              if (flag200ms)  //每200ms读取依次时间
+  32   2              {
+  33   3                  flag200ms = 0;
+  34   3                  DS1302BurstRead(time); //读取DS1302当前时间
+  35   3                  if (psec != time[0])   //检测到时间有变化时刷新显示
+  36   3                  {
+  37   4                      str[0] = '2';  //添加年份的高2位：20
+  38   4                      str[1] = '0';
+  39   4                      str[2] = (time[6] >> 4) + '0';  //“年”高位数字转换为ASCII码
+  40   4                      str[3] = (time[6]&0x0F) + '0';  //“年”低位数字转换为ASCII码
+  41   4                      str[4] = '-';  //添加日期分隔符
+  42   4                      str[5] = (time[4] >> 4) + '0';  //“月”
+  43   4                      str[6] = (time[4]&0x0F) + '0';
+  44   4                      str[7] = '-';
+  45   4                      str[8] = (time[3] >> 4) + '0';  //“日”
+  46   4                      str[9] = (time[3]&0x0F) + '0';
+  47   4                      str[10] = '\0';
+  48   4                      LcdShowStr(0, 0, str);  //显示到液晶的第一行
+  49   4                      
+  50   4                      str[0] = (time[5]&0x0F) + '0';  //“星期”
+  51   4                      str[1] = '\0';
+  52   4                      LcdShowStr(11, 0, "week");
+  53   4                      LcdShowStr(15, 0, str);  //显示到液晶的第一行
+  54   4                      
+C51 COMPILER V9.54   MAIN                                                                  02/17/2024 21:41:28 PAGE 2   
+
+  55   4                      str[0] = (time[2] >> 4) + '0';  //“时”
+  56   4                      str[1] = (time[2]&0x0F) + '0';
+  57   4                      str[2] = ':';  //添加时间分隔符
+  58   4                      str[3] = (time[1] >> 4) + '0';  //“分”
+  59   4                      str[4] = (time[1]&0x0F) + '0';
+  60   4                      str[5] = ':';
+  61   4                      str[6] = (time[0] >> 4) + '0';  //“秒”
+  62   4                      str[7] = (time[0]&0x0F) + '0';
+  63   4                      str[8] = '\0';
+  64   4                      LcdShowStr(4, 1, str);  //显示到液晶的第二行
+  65   4                      
+  66   4                      psec = time[0];  //用当前值更新上次秒数
+  67   4                  }
+  68   3              }
+  69   2          }
+  70   1      }
+  71          
+  72          /* 发送一个字节到DS1302通信总线上 */
+  73          void DS1302ByteWrite(unsigned char dat)
+  74          {
+  75   1          unsigned char mask;
+  76   1          
+  77   1          for (mask=0x01; mask!=0; mask<<=1)  //低位在前，逐位移出
+  78   1          {
+  79   2              if ((mask&dat) != 0) //首先输出该位数据
+  80   2                  DS1302_IO = 1;
+  81   2              else
+  82   2                  DS1302_IO = 0;
+  83   2              DS1302_CK = 1;       //然后拉高时钟
+  84   2              DS1302_CK = 0;       //再拉低时钟，完成一个位的操作
+  85   2          }
+  86   1          DS1302_IO = 1;           //最后确保释放IO引脚
+  87   1      }
+  88          /* 由DS1302通信总线上读取一个字节 */
+  89          unsigned char DS1302ByteRead()
+  90          {
+  91   1          unsigned char mask;
+  92   1          unsigned char dat = 0;
+  93   1          
+  94   1          for (mask=0x01; mask!=0; mask<<=1)  //低位在前，逐位读取
+  95   1          {
+  96   2              if (DS1302_IO != 0)  //首先读取此时的IO引脚，并设置dat中的对应位
+  97   2              {
+  98   3                  dat |= mask;
+  99   3              }
+ 100   2              DS1302_CK = 1;       //然后拉高时钟
+ 101   2              DS1302_CK = 0;       //再拉低时钟，完成一个位的操作
+ 102   2          }
+ 103   1          return dat;              //最后返回读到的字节数据
+ 104   1      }
+ 105          /* 用单次写操作向某一寄存器写入一个字节，reg-寄存器地址，dat-待写入字节 */
+ 106          void DS1302SingleWrite(unsigned char reg, unsigned char dat)
+ 107          {
+ 108   1          DS1302_CE = 1;                   //使能片选信号
+ 109   1          DS1302ByteWrite((reg<<1)|0x80);  //发送写寄存器指令
+ 110   1          DS1302ByteWrite(dat);            //写入字节数据
+ 111   1          DS1302_CE = 0;                   //除能片选信号
+ 112   1      }
+ 113          /* 用单次读操作从某一寄存器读取一个字节，reg-寄存器地址，返回值-读到的字�
+             -� */
+ 114          unsigned char DS1302SingleRead(unsigned char reg)
+ 115          {
+C51 COMPILER V9.54   MAIN                                                                  02/17/2024 21:41:28 PAGE 3   
+
+ 116   1          unsigned char dat;
+ 117   1          
+ 118   1          DS1302_CE = 1;                   //使能片选信号
+ 119   1          DS1302ByteWrite((reg<<1)|0x81);  //发送读寄存器指令
+ 120   1          dat = DS1302ByteRead();          //读取字节数据
+ 121   1          DS1302_CE = 0;                   //除能片选信号
+ 122   1          
+ 123   1          return dat;
+ 124   1      }
+ 125          void  DS1302BurstWrite(unsigned char *dat)
+ 126          {
+ 127   1        unsigned char i;
+ 128   1      
+ 129   1        DS1302_CE = 1;
+ 130   1        DS1302ByteWrite(0xBE);
+ 131   1        for(i=0; i<8; i++)
+ 132   1        {
+ 133   2          DS1302ByteWrite(dat[i]);
+ 134   2        }
+ 135   1        DS1302_CE = 0;
+ 136   1      }
+ 137          
+ 138          void  DS1302BurstRead(unsigned char *dat)
+ 139          {
+ 140   1        unsigned char i;
+ 141   1      
+ 142   1        DS1302_CE = 1;
+ 143   1        DS1302ByteWrite(0xBF);
+ 144   1        for(i=0; i<8; i++)
+ 145   1        {
+ 146   2          dat[i] = DS1302ByteRead();
+ 147   2        }
+ 148   1        DS1302_CE = 0;
+ 149   1      }
+ 150          /* DS1302初始化，如发生掉电则重新设置初始时间 */
+ 151          void InitDS1302()
+ 152          {
+ 153   1          unsigned char dat;
+ 154   1          unsigned char code InitTime[] = {  //
+ 155   1              0x00,0x30,0x12, 0x08, 0x10, 0x02, 0x25
+ 156   1          };
+ 157   1          
+ 158   1          DS1302_CE = 0;  //初始化DS1302通信引脚
+ 159   1          DS1302_CK = 0;
+ 160   1          dat = DS1302SingleRead(0);  //读取秒寄存器
+ 161   1          if ((dat & 0x80) != 0)      //由秒寄存器最高位CH的值判断DS1302是否已停止
+ 162   1          {
+ 163   2              DS1302SingleWrite(7, 0x00);  //撤销写保护以允许写入数据
+ 164   2              DS1302BurstWrite(InitTime);  //设置DS1302为默认的初始时间
+ 165   2          }
+ 166   1      }
+ 167          /* 配置并启动T0，ms-T0定时时间 */
+ 168          void ConfigTimer0(unsigned int ms)
+ 169          {
+ 170   1          unsigned long tmp;  //临时变量
+ 171   1          
+ 172   1          tmp = 11059200 / 12;      //定时器计数频率
+ 173   1          tmp = (tmp * ms) / 1000;  //计算所需的计数值
+ 174   1          tmp = 65536 - tmp;        //计算定时器重载值
+ 175   1          tmp = tmp + 12;           //补偿中断响应延时造成的误差
+ 176   1          T0RH = (unsigned char)(tmp>>8);  //定时器重载值拆分为高低字节
+ 177   1          T0RL = (unsigned char)tmp;
+C51 COMPILER V9.54   MAIN                                                                  02/17/2024 21:41:28 PAGE 4   
+
+ 178   1          TMOD &= 0xF0;   //清零T0的控制位
+ 179   1          TMOD |= 0x01;   //配置T0为模式1
+ 180   1          TH0 = T0RH;     //加载T0重载值
+ 181   1          TL0 = T0RL;
+ 182   1          ET0 = 1;        //使能T0中断
+ 183   1          TR0 = 1;        //启动T0
+ 184   1      }
+ 185          /* T0中断服务函数，执行200ms定时 */
+ 186          void InterruptTimer0() interrupt 1
+ 187          {
+ 188   1          static unsigned char tmr200ms = 0;
+ 189   1          
+ 190   1          TH0 = T0RH;  //重新加载重载值
+ 191   1          TL0 = T0RL;
+ 192   1          tmr200ms++;
+ 193   1          if (tmr200ms >= 200)  //定时200ms
+ 194   1          {
+ 195   2              tmr200ms = 0;
+ 196   2              flag200ms = 1;
+ 197   2          }
+ 198   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    574    ----
+   CONSTANT SIZE    =     12    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3      31
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

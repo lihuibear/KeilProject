@@ -1,0 +1,5 @@
+".\Objects\DS18B20.obj",
+".\Objects\main.obj",
+".\Objects\Led1602.obj" 
+TO ".\Objects\Project" 
+PRINT(".\Listings\Project.m51")

@@ -1,0 +1,185 @@
+C51 COMPILER V9.54   MAIN                                                                  02/14/2024 21:51:14 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\software\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <reg52.h>
+   2          
+   3          #define LCD1602_DB  P0
+   4          sbit LCD1602_RS = P1^0;
+   5          sbit LCD1602_RW = P1^1;
+   6          sbit LCD1602_E  = P1^5;
+   7          
+   8          bit flag500ms = 0;   //500ms定时标志
+   9          unsigned char T0RH = 0;  //T0重载值的高字节
+  10          unsigned char T0RL = 0;  //T0重载值的低字节
+  11          //待显示的第一行字符串
+  12          unsigned char code str1[] = "Kingst Studio";
+  13          //待显示的第二行字符串，需保持与第一行字符串等长，较短的行可用空格补齐
+  14          unsigned char code str2[] = "Let's move...";
+  15          
+  16          void ConfigTimer0(unsigned int ms);
+  17          void InitLcd1602();
+  18          void LcdShowStr(unsigned char x, unsigned char y,
+  19                          unsigned char *str, unsigned char len);
+  20          
+  21          void main()
+  22          {
+  23   1        unsigned char i = 0;
+  24   1        unsigned char index = 0;
+  25   1        unsigned char pdata bufMove1[16 + sizeof(str1) + 16];
+  26   1        unsigned char pdata bufMove2[16 + sizeof(str2) + 16];
+  27   1        EA = 1;            //开总中断
+  28   1          ConfigTimer0(10);  //配置T0定时10ms
+  29   1          InitLcd1602();     //初始化液晶  
+  30   1        for(i=0; i<16; i++)
+  31   1        {
+  32   2          bufMove1[i] = ' ';
+  33   2          bufMove2[i] = ' ';
+  34   2        }
+  35   1        for(i=0; i<(sizeof(str1)-1); i++)
+  36   1        {
+  37   2          bufMove1[16 + i] = str1[i];
+  38   2          bufMove2[16 + i] = str2[i];
+  39   2        }
+  40   1        for(i=(16 + sizeof(str1)-1); i<sizeof(bufMove1); i++)
+  41   1        {
+  42   2          bufMove1[i] = ' ';
+  43   2          bufMove2[i] = ' ';
+  44   2        }
+  45   1         while (1)
+  46   1          {
+  47   2              if (flag500ms)  //每500ms移动一次屏幕
+  48   2              {
+  49   3            flag500ms = 0;
+  50   3            LcdShowStr(0, 0, bufMove1 + index, 16);
+  51   3            LcdShowStr(0, 1, bufMove2 + index, 16);
+  52   3            index++;
+  53   3            if(index >= (16 + sizeof(str1)-1))
+  54   3            {
+C51 COMPILER V9.54   MAIN                                                                  02/14/2024 21:51:14 PAGE 2   
+
+  55   4              index = 0;  
+  56   4            }
+  57   3          }
+  58   2        }
+  59   1      }
+  60          
+  61          /* 配置并启动T0，ms-T0定时时间 */
+  62          void ConfigTimer0(unsigned int ms)
+  63          {
+  64   1          unsigned long tmp;  //临时变量
+  65   1          
+  66   1          tmp = 11059200 / 12;      //定时器计数频率
+  67   1          tmp = (tmp * ms) / 1000;  //计算所需的计数值
+  68   1          tmp = 65536 - tmp;        //计算定时器重载值
+  69   1          tmp = tmp + 12;           //补偿中断响应延时造成的误差
+  70   1          T0RH = (unsigned char)(tmp>>8);  //定时器重载值拆分为高低字节
+  71   1          T0RL = (unsigned char)tmp;
+  72   1          TMOD &= 0xF0;   //清零T0的控制位
+  73   1          TMOD |= 0x01;   //配置T0为模式1
+  74   1          TH0 = T0RH;     //加载T0重载值
+  75   1          TL0 = T0RL;
+  76   1          ET0 = 1;        //使能T0中断
+  77   1          TR0 = 1;        //启动T0
+  78   1      }
+  79          /* 等待液晶准备好 */
+  80          void LcdWaitReady()
+  81          {
+  82   1          unsigned char sta;
+  83   1          
+  84   1          LCD1602_DB = 0xFF;
+  85   1          LCD1602_RS = 0;
+  86   1          LCD1602_RW = 1;
+  87   1          do {
+  88   2              LCD1602_E = 1;
+  89   2              sta = LCD1602_DB; //读取状态字
+  90   2              LCD1602_E = 0;
+  91   2          } while (sta & 0x80); //bit7等于1表示液晶正忙，重复检测直到其等于0为止
+  92   1      }
+  93          /* 向LCD1602液晶写入一字节命令，cmd-待写入命令值 */
+  94          void LcdWriteCmd(unsigned char cmd)
+  95          {
+  96   1          LcdWaitReady();
+  97   1          LCD1602_RS = 0;
+  98   1          LCD1602_RW = 0;
+  99   1          LCD1602_DB = cmd;
+ 100   1          LCD1602_E  = 1;
+ 101   1          LCD1602_E  = 0;
+ 102   1      }
+ 103          /* 向LCD1602液晶写入一字节数据，dat-待写入数据值 */
+ 104          void LcdWriteDat(unsigned char dat)
+ 105          {
+ 106   1          LcdWaitReady();
+ 107   1          LCD1602_RS = 1;
+ 108   1          LCD1602_RW = 0;
+ 109   1          LCD1602_DB = dat;
+ 110   1          LCD1602_E  = 1;
+ 111   1          LCD1602_E  = 0;
+ 112   1      }
+ 113          /* 设置显示RAM起始地址，亦即光标位置，(x,y)-对应屏幕上的字符坐标 */
+ 114          void LcdSetCursor(unsigned char x, unsigned char y)
+ 115          {
+ 116   1          unsigned char addr;
+C51 COMPILER V9.54   MAIN                                                                  02/14/2024 21:51:14 PAGE 3   
+
+ 117   1          
+ 118   1          if (y == 0)  //由输入的屏幕坐标计算显示RAM的地址
+ 119   1              addr = 0x00 + x;  //第一行字符地址从0x00起始
+ 120   1          else
+ 121   1              addr = 0x40 + x;  //第二行字符地址从0x40起始
+ 122   1          LcdWriteCmd(addr | 0x80);  //设置RAM地址
+ 123   1      }
+ 124          /* 在液晶上显示字符串，(x,y)-对应屏幕上的起始坐标，
+ 125             str-字符串指针，len-需显示的字符长度 */
+ 126          void LcdShowStr(unsigned char x, unsigned char y, 
+ 127                          unsigned char *str, unsigned char len)
+ 128          {
+ 129   1          LcdSetCursor(x, y);   //设置起始地址
+ 130   1          while (len--)         //连续写入len个字符数据
+ 131   1          {
+ 132   2              LcdWriteDat(*str++);  //先取str指向的数据，然后str自加1
+ 133   2          }
+ 134   1      }
+ 135          /* 初始化1602液晶 */
+ 136          void InitLcd1602()
+ 137          {
+ 138   1          LcdWriteCmd(0x38);  //16*2显示，5*7点阵，8位数据接口
+ 139   1          LcdWriteCmd(0x0C);  //显示器开，光标关闭
+ 140   1          LcdWriteCmd(0x06);  //文字不动，地址自动+1
+ 141   1          LcdWriteCmd(0x01);  //清屏
+ 142   1      }
+ 143          /* T0中断服务函数，定时500ms */
+ 144          void InterruptTimer0() interrupt 1
+ 145          {
+ 146   1          static unsigned char tmr500ms = 0;
+ 147   1          
+ 148   1          TH0 = T0RH;  //重新加载重载值
+ 149   1          TL0 = T0RL;
+ 150   1          tmr500ms++;
+ 151   1          if (tmr500ms >= 50)
+ 152   1          {
+ 153   2              tmr500ms = 0;
+ 154   2              flag500ms = 1;
+ 155   2          }
+ 156   1      }
+ 157          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    416    ----
+   CONSTANT SIZE    =     28    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----      92
+   DATA SIZE        =      3      11
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

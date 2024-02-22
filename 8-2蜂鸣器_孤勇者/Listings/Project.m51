@@ -1,0 +1,175 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        02/13/2024  18:22:37  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+D:\SOFTWARE\KEIL_V5\C51\BIN\BL51.EXE .\Objects\main.obj TO .\Objects\Project PRINT (.\Listings\Project.m51)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  .\Objects\main.obj (MAIN)
+  D:\SOFTWARE\KEIL_V5\C51\LIB\C51S.LIB (?C_STARTUP)
+  D:\SOFTWARE\KEIL_V5\C51\LIB\C51S.LIB (?C?ULCMP)
+  D:\SOFTWARE\KEIL_V5\C51\LIB\C51S.LIB (?C_INIT)
+
+
+LINK MAP OF MODULE:  .\Objects\Project (MAIN)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     000AH     UNIT         _DATA_GROUP_
+            DATA    0012H     0003H     UNIT         ?DT?MAIN
+            IDATA   0015H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+                    0003H     0008H                  *** GAP ***
+            CODE    000BH     0003H     ABSOLUTE     
+                    000EH     07F2H                  *** GAP ***
+            CODE    0800H     025EH     UNIT         ?CO?MAIN
+            CODE    0A5EH     008CH     UNIT         ?C_C51STARTUP
+            CODE    0AEAH     007FH     UNIT         ?PR?SONG?MAIN
+            CODE    0B69H     0045H     UNIT         ?PR?_DELAY?MAIN
+            CODE    0BAEH     0011H     UNIT         ?C?LIB_CODE
+            CODE    0BBFH     000CH     UNIT         ?PR?MAIN?MAIN
+            CODE    0BCBH     0009H     UNIT         ?PR?T0INT?MAIN
+            CODE    0BD4H     0004H     UNIT         ?C_INITSEG
+
+
+
+OVERLAY MAP OF MODULE:   .\Objects\Project (MAIN)
+
+
+SEGMENT                          DATA_GROUP 
+  +--> CALLED SEGMENT          START    LENGTH
+----------------------------------------------
+?C_C51STARTUP                  -----    -----
+  +--> ?PR?MAIN?MAIN
+  +--> ?C_INITSEG
+
+?PR?MAIN?MAIN                  -----    -----
+  +--> ?PR?SONG?MAIN
+
+?PR?SONG?MAIN                  0008H    0005H
+  +--> ?CO?MAIN
+  +--> ?PR?_DELAY?MAIN
+BL51 BANKED LINKER/LOCATER V6.22                                                      02/13/2024  18:22:37  PAGE 2
+
+
+
+?PR?_DELAY?MAIN                000DH    0005H
+
+
+
+SYMBOL TABLE OF MODULE:  .\Objects\Project (MAIN)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0090H         PUBLIC        P1
+  D:00B0H         PUBLIC        P3
+  B:00A8H.7       PUBLIC        EA
+  D:00A8H         PUBLIC        IE
+  C:0B69H         PUBLIC        _delay
+  D:00B8H         PUBLIC        IP
+  C:0BBFH         PUBLIC        main
+  D:0012H         PUBLIC        time
+  D:0098H         PUBLIC        SCON
+  D:0089H         PUBLIC        TMOD
+  D:0088H         PUBLIC        TCON
+  C:0A26H         PUBLIC        FreTab
+  C:0AEAH         PUBLIC        song
+  D:0013H         PUBLIC        timer0h
+  D:0014H         PUBLIC        timer0l
+  B:00A8H.1       PUBLIC        ET0
+  D:008CH         PUBLIC        TH0
+  D:008AH         PUBLIC        TL0
+  B:0088H.4       PUBLIC        TR0
+  C:0800H         PUBLIC        gyz
+  D:00C8H         PUBLIC        T2CON
+  B:0090H.6       PUBLIC        speaker
+  C:0BCBH         PUBLIC        t0int
+  C:09EEH         PUBLIC        FREQH
+  D:00D0H         PUBLIC        PSW
+  C:0A0AH         PUBLIC        FREQL
+  -------         PROC          T0INT
+  C:0BCBH         LINE#         76
+  C:0BCBH         LINE#         78
+  C:0BCDH         LINE#         79
+  C:0BD0H         LINE#         80
+  C:0BD3H         LINE#         81
+  -------         ENDPROC       T0INT
+  -------         PROC          _DELAY
+  D:000DH         SYMBOL        t
+  -------         DO            
+  D:000EH         SYMBOL        t2
+  -------         ENDDO         
+  C:0B69H         LINE#         84
+  C:0B6BH         LINE#         85
+  C:0B6BH         LINE#         87
+  C:0B72H         LINE#         88
+  C:0B72H         LINE#         89
+  C:0BA7H         LINE#         90
+  C:0BABH         LINE#         91
+BL51 BANKED LINKER/LOCATER V6.22                                                      02/13/2024  18:22:37  PAGE 3
+
+
+  C:0BADH         LINE#         92
+  -------         ENDPROC       _DELAY
+  -------         PROC          SONG
+  -------         DO            
+  D:0008H         SYMBOL        k
+  D:0009H         SYMBOL        i
+  -------         ENDDO         
+  C:0AEAH         LINE#         94
+  C:0AEAH         LINE#         95
+  C:0AEAH         LINE#         96
+  C:0AEDH         LINE#         97
+  C:0AF5H         LINE#         99
+  C:0AF9H         LINE#         100
+  C:0AF9H         LINE#         101
+  C:0B11H         LINE#         102
+  C:0B11H         LINE#         103
+  C:0B13H         LINE#         104
+  C:0B15H         LINE#         106
+  C:0B15H         LINE#         107
+  C:0B23H         LINE#         108
+  C:0B29H         LINE#         109
+  C:0B31H         LINE#         113
+  C:0B33H         LINE#         114
+  C:0B33H         LINE#         115
+  C:0B4CH         LINE#         116
+  C:0B61H         LINE#         118
+  C:0B66H         LINE#         119
+  C:0B68H         LINE#         120
+  -------         ENDPROC       SONG
+  -------         PROC          MAIN
+  C:0BBFH         LINE#         121
+  C:0BBFH         LINE#         122
+  C:0BBFH         LINE#         123
+  C:0BC2H         LINE#         124
+  C:0BC6H         LINE#         125
+  C:0BC6H         LINE#         126
+  C:0BC6H         LINE#         127
+  C:0BC9H         LINE#         128
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        MAIN
+
+  -------         MODULE        ?C?ULCMP
+  C:0BAEH         PUBLIC        ?C?ULCMP
+  -------         ENDMOD        ?C?ULCMP
+
+******************************************************************************
+* RESTRICTED VERSION WITH 0800H BYTE CODE SIZE LIMIT; USED: 033DH BYTE (40%) *
+******************************************************************************
+
+Program Size: data=22.0 xdata=0 code=990
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

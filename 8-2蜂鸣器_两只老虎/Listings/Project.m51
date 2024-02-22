@@ -1,0 +1,195 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        02/13/2024  18:21:05  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+D:\SOFTWARE\KEIL_V5\C51\BIN\BL51.EXE .\Objects\main.obj TO .\Objects\Project PRINT (.\Listings\Project.m51)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  .\Objects\main.obj (MAIN)
+  D:\SOFTWARE\KEIL_V5\C51\LIB\C51S.LIB (?C_STARTUP)
+  D:\SOFTWARE\KEIL_V5\C51\LIB\C51S.LIB (?C?IMUL)
+  D:\SOFTWARE\KEIL_V5\C51\LIB\C51S.LIB (?C?SLCMP)
+  D:\SOFTWARE\KEIL_V5\C51\LIB\C51S.LIB (?C_INIT)
+
+
+LINK MAP OF MODULE:  .\Objects\Project (MAIN)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     0002H     UNIT         ?DT?MAIN
+            DATA    000AH     0001H     UNIT         _DATA_GROUP_
+                    000BH     0015H                  *** GAP ***
+            BIT     0020H.0   0000H.2   UNIT         ?BI?MAIN
+                    0020H.2   0000H.6                *** GAP ***
+            IDATA   0021H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+                    0003H     0008H                  *** GAP ***
+            CODE    000BH     0003H     ABSOLUTE     
+                    000EH     07F2H                  *** GAP ***
+            CODE    0800H     00AEH     UNIT         ?PR?PLAYTWOTIGER?MAIN
+            CODE    08AEH     008CH     UNIT         ?C_C51STARTUP
+            CODE    093AH     0078H     UNIT         ?CO?MAIN
+            CODE    09B2H     002BH     UNIT         ?PR?MAIN?MAIN
+            CODE    09DDH     0028H     UNIT         ?C?LIB_CODE
+            CODE    0A05H     0011H     UNIT         ?PR?INTERRUPTTIMER0?MAIN
+            CODE    0A16H     000BH     UNIT         ?C_INITSEG
+
+
+
+OVERLAY MAP OF MODULE:   .\Objects\Project (MAIN)
+
+
+SEGMENT                            DATA_GROUP 
+  +--> CALLED SEGMENT            START    LENGTH
+------------------------------------------------
+?C_C51STARTUP                    -----    -----
+  +--> ?PR?MAIN?MAIN
+  +--> ?C_INITSEG
+
+?PR?MAIN?MAIN                    -----    -----
+  +--> ?PR?PLAYTWOTIGER?MAIN
+
+BL51 BANKED LINKER/LOCATER V6.22                                                      02/13/2024  18:21:05  PAGE 2
+
+
+?PR?PLAYTWOTIGER?MAIN            000AH    0001H
+  +--> ?CO?MAIN
+
+
+
+SYMBOL TABLE OF MODULE:  .\Objects\Project (MAIN)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0090H         PUBLIC        P1
+  D:00B0H         PUBLIC        P3
+  B:00A8H.7       PUBLIC        EA
+  C:0A05H         PUBLIC        InterruptTimer0
+  D:00A8H         PUBLIC        IE
+  D:00B8H         PUBLIC        IP
+  D:0008H         PUBLIC        T0RH
+  C:093AH         PUBLIC        NoteFrequ
+  D:0009H         PUBLIC        T0RL
+  C:09B2H         PUBLIC        main
+  D:0098H         PUBLIC        SCON
+  D:0089H         PUBLIC        TMOD
+  D:0088H         PUBLIC        TCON
+  B:00A8H.1       PUBLIC        ET0
+  B:0090H.6       PUBLIC        BUZZ
+  D:008CH         PUBLIC        TH0
+  D:008AH         PUBLIC        TL0
+  C:0800H         PUBLIC        PlayTwoTiger
+  B:0088H.4       PUBLIC        TR0
+  D:00C8H         PUBLIC        T2CON
+  B:0020H.0       PUBLIC        enable
+  B:0020H.1       PUBLIC        tmrflag
+  C:0956H         PUBLIC        NoteReload
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          MAIN
+  -------         DO            
+  D:0082H         SYMBOL        i
+  -------         ENDDO         
+  C:09B2H         LINE#         33
+  C:09B2H         LINE#         34
+  C:09B2H         LINE#         37
+  C:09B4H         LINE#         38
+  C:09B7H         LINE#         39
+  C:09BAH         LINE#         40
+  C:09BDH         LINE#         41
+  C:09BFH         LINE#         42
+  C:09C1H         LINE#         44
+  C:09C1H         LINE#         45
+  C:09C1H         LINE#         46
+  C:09C4H         LINE#         47
+  -------         ENDPROC       MAIN
+  -------         PROC          PLAYTWOTIGER
+  -------         DO            
+  D:0001H         SYMBOL        beat
+  D:000AH         SYMBOL        note
+BL51 BANKED LINKER/LOCATER V6.22                                                      02/13/2024  18:21:05  PAGE 3
+
+
+  D:0002H         SYMBOL        time
+  D:0004H         SYMBOL        beatTime
+  D:0006H         SYMBOL        soundTime
+  C:0972H         SYMBOL        TwoTigerNote
+  C:0992H         SYMBOL        TwoTigerBeat
+  -------         ENDDO         
+  C:0800H         LINE#         51
+  C:0800H         LINE#         52
+  C:0800H         LINE#         55
+  C:0803H         LINE#         56
+  C:0805H         LINE#         57
+  C:0807H         LINE#         69
+  C:0811H         LINE#         70
+  C:0811H         LINE#         71
+  C:0814H         LINE#         72
+  C:0816H         LINE#         73
+  C:081AH         LINE#         74
+  C:081AH         LINE#         75
+  C:0822H         LINE#         76
+  C:0831H         LINE#         77
+  C:0843H         LINE#         79
+  C:086FH         LINE#         81
+  C:0880H         LINE#         82
+  C:0882H         LINE#         83
+  C:0887H         LINE#         84
+  C:088AH         LINE#         86
+  C:088AH         LINE#         87
+  C:0891H         LINE#         88
+  C:0891H         LINE#         89
+  C:0894H         LINE#         90
+  C:0895H         LINE#         91
+  C:0898H         LINE#         93
+  C:0898H         LINE#         94
+  C:089DH         LINE#         95
+  C:08A8H         LINE#         96
+  C:08A8H         LINE#         97
+  C:08AAH         LINE#         98
+  C:08AAH         LINE#         99
+  C:08AAH         LINE#         100
+  C:08AAH         LINE#         101
+  C:08ADH         LINE#         102
+  -------         ENDPROC       PLAYTWOTIGER
+  -------         PROC          INTERRUPTTIMER0
+  C:0A05H         LINE#         104
+  C:0A05H         LINE#         106
+  C:0A08H         LINE#         107
+  C:0A0BH         LINE#         108
+  C:0A0DH         LINE#         109
+  C:0A10H         LINE#         110
+  C:0A13H         LINE#         112
+  C:0A15H         LINE#         113
+  -------         ENDPROC       INTERRUPTTIMER0
+  -------         ENDMOD        MAIN
+
+  -------         MODULE        ?C?IMUL
+  C:09DDH         PUBLIC        ?C?IMUL
+  -------         ENDMOD        ?C?IMUL
+BL51 BANKED LINKER/LOCATER V6.22                                                      02/13/2024  18:21:05  PAGE 4
+
+
+
+  -------         MODULE        ?C?SLCMP
+  C:09EFH         PUBLIC        ?C?SLCMP
+  -------         ENDMOD        ?C?SLCMP
+
+******************************************************************************
+* RESTRICTED VERSION WITH 0800H BYTE CODE SIZE LIMIT; USED: 016FH BYTE (17%) *
+******************************************************************************
+
+Program Size: data=12.2 xdata=0 code=551
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

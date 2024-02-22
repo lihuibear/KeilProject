@@ -1,0 +1,137 @@
+C51 COMPILER V9.54   DS18B20                                                               02/17/2024 22:04:34 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DS18B20
+OBJECT MODULE PLACED IN .\Objects\DS18B20.obj
+COMPILER INVOKED BY: D:\software\Keil_v5\C51\BIN\C51.EXE DS18B20.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\L
+                    -istings\DS18B20.lst) TABS(2) OBJECT(.\Objects\DS18B20.obj)
+
+line level    source
+
+   1          
+   2          #include <reg52.h>
+   3          #include <intrins.h>
+   4          
+   5          sbit IO_18B20 = P3^2;  //DS18B20通信引脚
+   6          
+   7          /* 软件延时函数，延时时间(t*10)us */
+   8          void DelayX10us(unsigned char t)
+   9          {
+  10   1          do {
+  11   2              _nop_();
+  12   2              _nop_();
+  13   2              _nop_();
+  14   2              _nop_();
+  15   2              _nop_();
+  16   2              _nop_();
+  17   2              _nop_();
+  18   2              _nop_();
+  19   2          } while (--t);
+  20   1      }
+  21          bit Get18B20Ack()
+  22          {
+  23   1        bit ack;
+  24   1      
+  25   1        EA = 0;
+  26   1        IO_18B20 = 0;
+  27   1        DelayX10us(50);
+  28   1        IO_18B20 = 1;
+  29   1        DelayX10us(6);
+  30   1        ack = IO_18B20;
+  31   1        while(!IO_18B20);
+  32   1        EA = 1;
+  33   1      
+  34   1        return ack;
+  35   1      }
+  36          
+  37          void  Write18B20(unsigned char dat)
+  38          {
+  39   1        unsigned char mask;
+  40   1        EA = 0;
+  41   1        for(mask=0x01; mask!= 0; mask<<=1)
+  42   1        {
+  43   2          IO_18B20 = 0;
+  44   2          _nop_();
+  45   2          _nop_();
+  46   2          if((mask&dat) == 0)
+  47   2            IO_18B20 = 0;
+  48   2          else
+  49   2            IO_18B20 = 1;
+  50   2          DelayX10us(6);
+  51   2          IO_18B20 = 1;
+  52   2        }
+  53   1        EA = 1;
+  54   1      }
+C51 COMPILER V9.54   DS18B20                                                               02/17/2024 22:04:34 PAGE 2   
+
+  55          
+  56          unsigned char Read18B20()
+  57          {
+  58   1        unsigned char dat;
+  59   1        unsigned char mask;
+  60   1      
+  61   1        EA = 0;
+  62   1        for(mask=0x01; mask!=0; mask<<=1)
+  63   1        {
+  64   2          IO_18B20 = 0;
+  65   2          _nop_();
+  66   2          _nop_();
+  67   2          IO_18B20 = 1;
+  68   2          _nop_();
+  69   2          _nop_();
+  70   2          if(!IO_18B20)
+  71   2            dat &= ~mask;
+  72   2          else
+  73   2            dat |= mask;
+  74   2          DelayX10us(6);
+  75   2        }
+  76   1        EA = 1;
+  77   1      
+  78   1        return dat;
+  79   1      }
+  80          
+  81          bit Start18B20()
+  82          {
+  83   1        bit ack;
+  84   1      
+  85   1        ack = Get18B20Ack();
+  86   1        if(ack == 0)
+  87   1        {
+  88   2          Write18B20(0xCC);
+  89   2          Write18B20(0x44);
+  90   2        }
+  91   1        return ~ack;
+  92   1      }
+  93          
+  94          bit Get18B20Temp(int *temp)
+  95          {
+  96   1        bit ack;
+  97   1        unsigned char LSB, MSB;
+  98   1      
+  99   1        ack = Get18B20Ack();
+ 100   1        if(ack == 0)
+ 101   1        {
+ 102   2          Write18B20(0xCC);
+ 103   2          Write18B20(0xBE);
+ 104   2          LSB = Read18B20();
+ 105   2          MSB = Read18B20();
+ 106   2          *temp = ((int)MSB<<8) + LSB;
+ 107   2        }
+ 108   1        return ~ack;
+ 109   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    187    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   DS18B20                                                               02/17/2024 22:04:34 PAGE 3   
+
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       3
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

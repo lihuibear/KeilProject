@@ -1,0 +1,6 @@
+".\Objects\Led1602.obj",
+".\Objects\eeprom.obj",
+".\Objects\I2C.obj",
+".\Objects\main.obj" 
+TO ".\Objects\Project" 
+PRINT(".\Listings\Project.m51")

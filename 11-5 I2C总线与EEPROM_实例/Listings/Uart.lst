@@ -1,0 +1,139 @@
+C51 COMPILER V9.54   UART                                                                  02/16/2024 22:20:39 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE UART
+OBJECT MODULE PLACED IN .\Objects\Uart.obj
+COMPILER INVOKED BY: D:\software\Keil_v5\C51\BIN\C51.EXE Uart.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\Uart.lst) TABS(2) OBJECT(.\Objects\Uart.obj)
+
+line level    source
+
+   1          
+   2          #include <reg52.h>
+   3          
+   4          bit flagFrame = 0;  //帧接收完成标志，即接收到一帧新数据
+   5          bit flagTxd = 0;    //单字节发送完成标志，用来替代TXD中断标志位
+   6          unsigned char cntRxd = 0;   //接收字节计数器
+   7          unsigned char pdata bufRxd[64];  //接收字节缓冲区
+   8          
+   9          extern void UartAction(unsigned char *buf, unsigned char len);
+  10          
+  11          /* 串口配置函数，baud-通信波特率 */
+  12          void ConfigUART(unsigned int baud)
+  13          {
+  14   1          SCON  = 0x50;  //配置串口为模式1
+  15   1          TMOD &= 0x0F;  //清零T1的控制位
+  16   1          TMOD |= 0x20;  //配置T1为模式2
+  17   1          TH1 = 256 - (11059200/12/32)/baud;  //计算T1重载值
+  18   1          TL1 = TH1;     //初值等于重载值
+  19   1          ET1 = 0;       //禁止T1中断
+  20   1          ES  = 1;       //使能串口中断
+  21   1          TR1 = 1;       //启动T1
+  22   1      }
+  23          /* 串口数据写入，即串口发送函数，buf-待发送数据的指针，len-指定的发送长度 *
+             -/
+  24          void UartWrite(unsigned char *buf, unsigned char len)
+  25          {
+  26   1          while (len--)  //循环发送所有字节
+  27   1          {
+  28   2              flagTxd = 0;      //清零发送标志
+  29   2              SBUF = *buf++;    //发送一个字节数据
+  30   2              while (!flagTxd); //等待该字节发送完成
+  31   2          }
+  32   1      }
+  33          /* 串口数据读取函数，buf-接收指针，len-指定的读取长度，返回值-实际读到的长�
+             -�� */
+  34          unsigned char UartRead(unsigned char *buf, unsigned char len)
+  35          {
+  36   1          unsigned char i;
+  37   1          
+  38   1          if (len > cntRxd)  //指定读取长度大于实际接收到的数据长度时，
+  39   1          {                  //读取长度设置为实际接收到的数据长度
+  40   2              len = cntRxd;
+  41   2          }
+  42   1          for (i=0; i<len; i++)  //拷贝接收到的数据到接收指针上
+  43   1          {
+  44   2              *buf++ = bufRxd[i];
+  45   2          }
+  46   1          cntRxd = 0;  //接收计数器清零
+  47   1          
+  48   1          return len;  //返回实际读取长度
+  49   1      }
+  50          /* 串口接收监控，由空闲时间判定帧结束，需在定时中断中调用，ms-定时间隔 */
+  51          void UartRxMonitor(unsigned char ms)
+  52          {
+C51 COMPILER V9.54   UART                                                                  02/16/2024 22:20:39 PAGE 2   
+
+  53   1          static unsigned char cntbkp = 0;
+  54   1          static unsigned char idletmr = 0;
+  55   1      
+  56   1          if (cntRxd > 0)  //接收计数器大于零时，监控总线空闲时间
+  57   1          {
+  58   2              if (cntbkp != cntRxd)  //接收计数器改变，即刚接收到数据时，清零空闲计时
+  59   2              {
+  60   3                  cntbkp = cntRxd;
+  61   3                  idletmr = 0;
+  62   3              }
+  63   2              else                   //接收计数器未改变，即总线空闲时，累积空闲时间
+  64   2              {
+  65   3                  if (idletmr < 30)  //空闲计时小于30ms时，持续累加
+  66   3                  {
+  67   4                      idletmr += ms;
+  68   4                      if (idletmr >= 30)  //空闲时间达到30ms时，即判定为一帧接收完毕
+  69   4                      {
+  70   5                          flagFrame = 1;  //设置帧接收完成标志
+  71   5                      }
+  72   4                  }
+  73   3              }
+  74   2          }
+  75   1          else
+  76   1          {
+  77   2              cntbkp = 0;
+  78   2          }
+  79   1      }
+  80          /* 串口驱动函数，监测数据帧的接收，调度功能函数，需在主循环中调用 */
+  81          void UartDriver()
+  82          {
+  83   1          unsigned char len;
+  84   1          unsigned char pdata buf[40];
+  85   1      
+  86   1          if (flagFrame) //有命令到达时，读取处理该命令
+  87   1          {
+  88   2              flagFrame = 0;
+  89   2              len = UartRead(buf, sizeof(buf));  //将接收到的命令读取到缓冲区中
+  90   2              UartAction(buf, len);  //传递数据帧，调用动作执行函数
+  91   2          }
+  92   1      }
+  93          /* 串口中断服务函数 */
+  94          void InterruptUART() interrupt 4
+  95          {
+  96   1          if (RI)  //接收到新字节
+  97   1          {
+  98   2              RI = 0;  //清零接收中断标志位
+  99   2              if (cntRxd < sizeof(bufRxd)) //接收缓冲区尚未用完时，
+ 100   2              {                            //保存接收字节，并递增计数器
+ 101   3                  bufRxd[cntRxd++] = SBUF;
+ 102   3              }
+ 103   2          }
+ 104   1          if (TI)  //字节发送完毕
+ 105   1          {
+ 106   2              TI = 0;   //清零发送中断标志位
+ 107   2              flagTxd = 1;  //设置字节发送完成标志
+ 108   2          }
+ 109   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    255    ----
+   CONSTANT SIZE    =   ----    ----
+C51 COMPILER V9.54   UART                                                                  02/16/2024 22:20:39 PAGE 3   
+
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =     64      40
+   DATA SIZE        =      3       6
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

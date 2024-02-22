@@ -1,0 +1,191 @@
+C51 COMPILER V9.54   MAIN                                                                  02/14/2024 22:11:25 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\software\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <reg52.h>
+   2          unsigned char step = 0;
+   3          unsigned char oprt = 0;
+   4          signed long num1 = 0;
+   5          signed long num2 = 0;
+   6          signed long result = 0;
+   7          unsigned char T0RH = 0;
+   8          unsigned char T0RL = 0;
+   9          
+  10          void ConfigTimer0(unsigned int ms);
+  11          extern void KeyScan();
+  12          extern void KeyDriver();
+  13          extern void InitLcd1602();
+  14          extern void LcdShowStr(unsigned char x, unsigned char y, unsigned char *str);
+  15          extern void LcdFullClear();
+  16          extern void LcdAreaClear(unsigned char x, unsigned char y, unsigned char len);
+  17          
+  18          void main()
+  19          {
+  20   1          EA = 1;           //开总中断
+  21   1          ConfigTimer0(1);  //配置T0定时1ms
+  22   1        InitLcd1602();    //初始化液晶
+  23   1          LcdShowStr(15, 1, "0");  //初始显示一个数字0
+  24   1          
+  25   1          while (1)
+  26   1          {
+  27   2              KeyDriver();  //调用按键驱动
+  28   2          }
+  29   1      }
+  30          unsigned char LongToString(unsigned char *str, signed long dat)
+  31          {
+  32   1        signed char i = 0;
+  33   1        unsigned char len = 0;
+  34   1        unsigned char buf[12];
+  35   1      
+  36   1        if(dat < 0)
+  37   1        {
+  38   2          dat = -dat;
+  39   2          *str++ = '-';
+  40   2          len++;
+  41   2        }
+  42   1        do{
+  43   2          buf[i++] = dat % 10;
+  44   2          dat /= 10;
+  45   2          }while(dat > 0);
+  46   1        len += i;
+  47   1        while(i-- > 0)
+  48   1        {
+  49   2          *str++ = buf[i] + '0';
+  50   2        }
+  51   1        *str = '\0';
+  52   1      
+  53   1        return len;
+  54   1          
+C51 COMPILER V9.54   MAIN                                                                  02/14/2024 22:11:25 PAGE 2   
+
+  55   1      }
+  56          void ShowOprt(unsigned char y, unsigned char type)
+  57          {
+  58   1        switch(type)
+  59   1        {
+  60   2          case 0: LcdShowStr(0, y, "+"); break;
+  61   2          case 1: LcdShowStr(0, y, "-"); break;
+  62   2          case 2: LcdShowStr(0, y, "*"); break;
+  63   2          case 3: LcdShowStr(0, y, "/"); break;
+  64   2          default: break;
+  65   2        }
+  66   1      }
+  67          void Reset()
+  68          {
+  69   1        num1 = 0;
+  70   1        num2 = 0;
+  71   1        step = 0;
+  72   1        LcdFullClear();
+  73   1      }
+  74          void NumKeyAction(unsigned char n)
+  75          {
+  76   1        unsigned char len = 0;
+  77   1        unsigned char str[12];
+  78   1      
+  79   1        if(step > 1)
+  80   1        {
+  81   2          Reset();
+  82   2        }
+  83   1        if(step == 0)
+  84   1        {
+  85   2          num1 = num1*10 + n;
+  86   2          len = LongToString(str, num1);
+  87   2          LcdShowStr(16 - len, 1, str);
+  88   2        }
+  89   1        else 
+  90   1        {
+  91   2          num2 = num2*10 + n;
+  92   2          len = LongToString(str, num2);
+  93   2          LcdShowStr(16 - len, 1, str);
+  94   2        } 
+  95   1      }
+  96          void OprtKeyAction(unsigned char type)
+  97          {  
+  98   1        unsigned char len;
+  99   1        unsigned char str[12];
+ 100   1        if(step == 0)
+ 101   1        {
+ 102   2          len = LongToString(str, num1);
+ 103   2          LcdAreaClear(0, 0, 16-len);
+ 104   2          LcdShowStr(16-len, 0, str);
+ 105   2          ShowOprt(1, type);         
+ 106   2          LcdAreaClear(1, 1, 14);       
+ 107   2          LcdShowStr(15, 1, "0");
+ 108   2          oprt = type; 
+ 109   2          step = 1; 
+ 110   2        }
+ 111   1      }
+ 112          void GetResult()
+ 113          {
+ 114   1        unsigned char len;
+ 115   1        unsigned char str[12];
+ 116   1        if(step == 1)
+C51 COMPILER V9.54   MAIN                                                                  02/14/2024 22:11:25 PAGE 3   
+
+ 117   1        {
+ 118   2          step = 2;
+ 119   2          switch(oprt)
+ 120   2          {
+ 121   3            case 0: result = num1 + num2; break;
+ 122   3            case 1: result = num1 - num2; break;
+ 123   3            case 2: result = num1 * num2; break;
+ 124   3            case 3: result = num1 / num2; break;
+ 125   3            default: break;
+ 126   3          }
+ 127   2      
+ 128   2          len = LongToString(str, num2); 
+ 129   2          ShowOprt(0, oprt);                    
+ 130   2          LcdAreaClear(1, 0, 16-1-len);
+ 131   2          LcdShowStr(16-len, 0, str);
+ 132   2          len = LongToString(str, result);
+ 133   2          LcdShowStr(0, 1, "=");
+ 134   2          LcdAreaClear(1, 1, 16-1-len);
+ 135   2          LcdShowStr(16-len, 1, str);   
+ 136   2        }                    
+ 137   1      }
+ 138          
+ 139          /* 配置并启动T0，ms-T0定时时间 */
+ 140          void ConfigTimer0(unsigned int ms)
+ 141          {
+ 142   1          unsigned long tmp;  //临时变量
+ 143   1          
+ 144   1          tmp = 11059200 / 12;      //定时器计数频率
+ 145   1          tmp = (tmp * ms) / 1000;  //计算所需的计数值
+ 146   1          tmp = 65536 - tmp;        //计算定时器重载值
+ 147   1          tmp = tmp + 12;           //补偿中断响应延时造成的误差
+ 148   1          T0RH = (unsigned char)(tmp>>8);  //定时器重载值拆分为高低字节
+ 149   1          T0RL = (unsigned char)tmp;
+ 150   1          TMOD &= 0xF0;   //清零T0的控制位
+ 151   1          TMOD |= 0x01;   //配置T0为模式1
+ 152   1          TH0 = T0RH;     //加载T0重载值
+ 153   1          TL0 = T0RL;
+ 154   1          ET0 = 1;        //使能T0中断
+ 155   1          TR0 = 1;        //启动T0
+ 156   1      }
+ 157          /* T0中断服务函数，执行按键扫描 */
+ 158          void InterruptTimer0() interrupt 1
+ 159          {
+ 160   1          TH0 = T0RH;  //重新加载重载值
+ 161   1          TL0 = T0RL;
+ 162   1          KeyScan();   //按键扫描
+ 163   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    966    ----
+   CONSTANT SIZE    =     12    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     16      67
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

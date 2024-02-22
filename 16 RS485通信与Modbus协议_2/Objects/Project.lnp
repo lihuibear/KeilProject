@@ -1,0 +1,6 @@
+".\Objects\CRC16.obj",
+".\Objects\Lcd1602.obj",
+".\Objects\main.obj",
+".\Objects\RS485.obj" 
+TO ".\Objects\Project" 
+PRINT(".\Listings\Project.m51")

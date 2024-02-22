@@ -1,0 +1,129 @@
+C51 COMPILER V9.54   INFRARED                                                              02/17/2024 22:00:11 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE INFRARED
+OBJECT MODULE PLACED IN .\Objects\Infrared.obj
+COMPILER INVOKED BY: D:\software\Keil_v5\C51\BIN\C51.EXE Infrared.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\
+                    -Listings\Infrared.lst) TABS(2) OBJECT(.\Objects\Infrared.obj)
+
+line level    source
+
+   1          
+   2          #include <reg52.h>
+   3          
+   4          sbit IR_INPUT = P3^3;  //红外接收引脚
+   5          
+   6          bit irflag = 0;  //红外接收标志，收到一帧正确数据后置1
+   7          unsigned char ircode[4];  //红外代码接收缓冲区
+   8          
+   9          void InitInfrared()
+  10          { 
+  11   1        IR_INPUT = 1;
+  12   1        TMOD &= 0X0F;
+  13   1        TMOD |= 0x10;
+  14   1        TR1 = 0;
+  15   1        ET1 = 0;
+  16   1        IT1 = 1;
+  17   1        EX1 = 1;
+  18   1      }
+  19          unsigned int GetHighTime()
+  20          {
+  21   1        TH1 = 0;
+  22   1        TL1 = 0;
+  23   1        TR1 = 1;
+  24   1        while(IR_INPUT)
+  25   1        {
+  26   2          if(TH1 > 0x40)
+  27   2          {
+  28   3            break;
+  29   3          }
+  30   2        }
+  31   1        TR1 = 0;
+  32   1      
+  33   1        return(TH1 * 256 + TL1);
+  34   1      }
+  35          
+  36          unsigned int GetLowTime()
+  37          {
+  38   1        TH1 = 0;
+  39   1        TL1 = 0;
+  40   1        TR1 = 1;
+  41   1        while(!IR_INPUT)
+  42   1        {
+  43   2          if(TH1 > 0x40)
+  44   2          {
+  45   3            break;
+  46   3          }
+  47   2        }
+  48   1        TR1 = 0;
+  49   1      
+  50   1        return(TH1 * 256 + TL1);
+  51   1      }
+  52          void EXINT1_ISR() interrupt 2
+  53          {
+  54   1        unsigned char i, j;
+C51 COMPILER V9.54   INFRARED                                                              02/17/2024 22:00:11 PAGE 2   
+
+  55   1        unsigned int time;
+  56   1        unsigned char byt;
+  57   1      
+  58   1        time = GetLowTime();
+  59   1        if((time <7833) || (time > 8755))    
+  60   1        {
+  61   2          IE1 = 0;
+  62   2          return; 
+  63   2        }
+  64   1      
+  65   1        time = GetHighTime();
+  66   1        if((time<3686) || (time > 4608))
+  67   1        {
+  68   2          IE1 = 0;
+  69   2          return;
+  70   2        }
+  71   1        for(i=0; i<4; i++)
+  72   1        {
+  73   2          for(j=0; j<8; j++)
+  74   2          {
+  75   3            time = GetLowTime();
+  76   3            if((time<313) ||(time >718))
+  77   3            {
+  78   4              IE1 = 0;
+  79   4              return;
+  80   4            }
+  81   3            time = GetHighTime();
+  82   3            if((time>313) && (time <718))
+  83   3            {
+  84   4              byt >>= 1;  
+  85   4            }
+  86   3            else if((time>1345) && (time<1751))
+  87   3            {
+  88   4              byt >>= 1;
+  89   4              byt |= 0x80;
+  90   4            }
+  91   3            else
+  92   3            {
+  93   4              IE1 = 0;
+  94   4              return;
+  95   4            }
+  96   3          }
+  97   2          ircode[i] = byt;
+  98   2        }
+  99   1        irflag = 1;
+ 100   1        IE1 = 0;
+ 101   1      }
+ 102          
+ 103          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    285    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,118 @@
+C51 COMPILER V9.54   MAIN                                                                  02/14/2024 21:36:30 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\software\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <reg52.h>
+   2          
+   3          #define LCD1602_DB  P0   // LCD1602 数据总线接口定义在 P0 口
+   4          sbit LCD1602_RS = P1^0;  // 指定 LCD1602 的 RS 信号接口为 P1^0
+   5          sbit LCD1602_RW = P1^1;  // 指定 LCD1602 的 RW 信号接口为 P1^1
+   6          sbit LCD1602_E = P1^5;   // 指定 LCD1602 的 E 信号接口为 P1^5
+   7          
+   8          void InitLcd1602();  // LCD1602 初始化函数声明
+   9          void LcdWaitReady();// 等待 LCD1602 准备就绪
+  10          void LcdWriteCmd(unsigned char cmd);  // 写入命令到 LCD1602
+  11          void LcdWriteDat(unsigned char dat);// 写入数据到 LCD1602
+  12          void LcdSetCursor(unsigned char x, unsigned char y);// 设置 LCD1602 的显示位置
+  13          void LcdShowStr(unsigned char x, unsigned char y, unsigned char *str);  // 在指定位置显示字符串�
+             -��数声明
+  14          
+  15          void main()
+  16          {
+  17   1          unsigned char str[] = "Kingst Studio";  // 要显示的字符串
+  18   1      
+  19   1          InitLcd1602();  // 初始化 LCD1602
+  20   1          LcdShowStr(2, 0, str);  // 在第一行第二列显示 "Kingst Studio"数字是坐标
+  21   1          LcdShowStr(0, 1, "Welcome to KST51");  // 在第二行第一列显示 "Welcome to KST51"
+  22   1          
+  23   1          while(1);  // 主程序循环
+  24   1      }
+  25          
+  26          // 等待 LCD1602 准备就绪
+  27          void LcdWaitReady()
+  28          {
+  29   1          unsigned char sta;
+  30   1      
+  31   1          LCD1602_DB = 0xFF;  // 设置数据总线为输入
+  32   1          LCD1602_RS = 0;     // 设置 RS 为命令模式
+  33   1          LCD1602_RW = 1;     // 设置 RW 为读模式
+  34   1          do {
+  35   2              LCD1602_E = 1;  // 使能 E 信号
+  36   2              sta = LCD1602_DB;  // 读取状态
+  37   2              LCD1602_E = 0;  // 禁能 E 信号
+  38   2          } while(sta & 0x80);  // 检查忙标志
+  39   1      }
+  40          
+  41          // 写入命令到 LCD1602
+  42          void LcdWriteCmd(unsigned char cmd)
+  43          {
+  44   1          LcdWaitReady();  // 等待 LCD1602 准备就绪 忙位检测
+  45   1          LCD1602_RS = 0;  // 命令模式
+  46   1          LCD1602_RW = 0;  // 写入模式
+  47   1          LCD1602_DB = cmd;  // 写入命令
+  48   1          LCD1602_E = 1;  // 使能 E 信号
+  49   1          LCD1602_E = 0;  // 禁能 E 信号
+  50   1      }
+  51          
+  52          // 写入数据到 LCD1602
+  53          void LcdWriteDat(unsigned char dat)
+C51 COMPILER V9.54   MAIN                                                                  02/14/2024 21:36:30 PAGE 2   
+
+  54          {
+  55   1          LcdWaitReady();  // 等待 LCD1602 准备就绪
+  56   1          LCD1602_RS = 1;  // 数据模式
+  57   1          LCD1602_RW = 0;  // 写入模式
+  58   1          LCD1602_DB = dat;  // 写入数据
+  59   1          LCD1602_E = 1;  // 使能 E 信号
+  60   1          LCD1602_E = 0;  // 禁能 E 信号
+  61   1      }
+  62          
+  63          // 设置 LCD1602 的显示位置
+  64          void LcdSetCursor(unsigned char x, unsigned char y)
+  65          {
+  66   1          unsigned char addr;
+  67   1          if(y == 0)
+  68   1              addr = 0x00 + x;
+  69   1          else
+  70   1              addr = 0x40 + x;
+  71   1          LcdWriteCmd(addr | 0x80);  // 设置光标位置
+  72   1      }
+  73          
+  74          // 在 LCD1602 上显示字符串
+  75          void LcdShowStr(unsigned char x, unsigned char y, unsigned char *str)
+  76          {
+  77   1          LcdSetCursor(x, y);  // 设置光标位置
+  78   1          while(*str != '\0')
+  79   1          {
+  80   2              LcdWriteDat(*str++);  // 逐个写入字符
+  81   2          }
+  82   1      }
+  83          
+  84          // 初始化 LCD1602
+  85          void InitLcd1602()
+  86          {
+  87   1          LcdWriteCmd(0x38);  // 8位数据接口，两行显示，5x7 点阵字符
+  88   1          LcdWriteCmd(0x0C);  // 开显示，不显示光标
+  89   1          LcdWriteCmd(0x06);  // 光标右移，字符不移动
+  90   1          LcdWriteCmd(0x01);  // 清屏
+  91   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    178    ----
+   CONSTANT SIZE    =     31    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      17
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

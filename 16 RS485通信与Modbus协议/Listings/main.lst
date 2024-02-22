@@ -1,0 +1,82 @@
+C51 COMPILER V9.54   MAIN                                                                  02/17/2024 22:29:09 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\software\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <reg52.h>
+   2          
+   3          unsigned char T0RH = 0;  //T0重载值的高字节
+   4          unsigned char T0RL = 0;  //T0重载值的低字节
+   5          
+   6          void ConfigTimer0(unsigned int ms);
+   7          extern void UartDriver();
+   8          extern void ConfigUART(unsigned int baud);
+   9          extern void UartRxMonitor(unsigned char ms);
+  10          extern void UartWrite(unsigned char *buf, unsigned char len);
+  11          
+  12          void main()
+  13          {
+  14   1          EA = 1;            //开总中断
+  15   1          ConfigTimer0(1);   //配置T0定时1ms
+  16   1          ConfigUART(9600);  //配置波特率为9600
+  17   1          
+  18   1          while (1)
+  19   1          {
+  20   2              UartDriver();  //调用串口驱动
+  21   2          }
+  22   1      }
+  23          /* 串口动作函数，根据接收到的命令帧执行响应的动作
+  24             buf-接收到的命令帧指针，len-命令帧长度 */
+  25          void UartAction(unsigned char *buf, unsigned char len)
+  26          {
+  27   1          //在接收到的数据帧后添加换车换行符后发回
+  28   1          buf[len++] = '\r';
+  29   1          buf[len++] = '\n';
+  30   1          UartWrite(buf, len);
+  31   1      }
+  32          /* 配置并启动T0，ms-T0定时时间 */
+  33          void ConfigTimer0(unsigned int ms)
+  34          {
+  35   1          unsigned long tmp;  //临时变量
+  36   1          
+  37   1          tmp = 11059200 / 12;      //定时器计数频率
+  38   1          tmp = (tmp * ms) / 1000;  //计算所需的计数值
+  39   1          tmp = 65536 - tmp;        //计算定时器重载值
+  40   1          tmp = tmp + 33;           //补偿中断响应延时造成的误差
+  41   1          T0RH = (unsigned char)(tmp>>8);  //定时器重载值拆分为高低字节
+  42   1          T0RL = (unsigned char)tmp;
+  43   1          TMOD &= 0xF0;   //清零T0的控制位
+  44   1          TMOD |= 0x01;   //配置T0为模式1
+  45   1          TH0 = T0RH;     //加载T0重载值
+  46   1          TL0 = T0RL;
+  47   1          ET0 = 1;        //使能T0中断
+  48   1          TR0 = 1;        //启动T0
+  49   1      }
+  50          /* T0中断服务函数，执行串口接收监控 */
+  51          void InterruptTimer0() interrupt 1
+  52          {
+  53   1          TH0 = T0RH;  //重新加载重载值
+  54   1          TL0 = T0RL;
+C51 COMPILER V9.54   MAIN                                                                  02/17/2024 22:29:09 PAGE 2   
+
+  55   1          UartRxMonitor(1);  //串口接收监控
+  56   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    244    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      2       7
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

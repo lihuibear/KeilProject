@@ -1,0 +1,152 @@
+C51 COMPILER V9.54   KEYBOARD                                                              02/14/2024 22:11:25 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE KEYBOARD
+OBJECT MODULE PLACED IN .\Objects\keyboard.obj
+COMPILER INVOKED BY: D:\software\Keil_v5\C51\BIN\C51.EXE keyboard.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\
+                    -Listings\keyboard.lst) TABS(2) OBJECT(.\Objects\keyboard.obj)
+
+line level    source
+
+   1          #include <reg52.h>
+   2          
+   3          sbit KEY_IN_1  = P2^4;
+   4          sbit KEY_IN_2  = P2^5;
+   5          sbit KEY_IN_3  = P2^6;
+   6          sbit KEY_IN_4  = P2^7;
+   7          sbit KEY_OUT_1 = P2^3;
+   8          sbit KEY_OUT_2 = P2^2;
+   9          sbit KEY_OUT_3 = P2^1;
+  10          sbit KEY_OUT_4 = P2^0;
+  11          
+  12          unsigned char code KeyCodeMap[4][4] = { //矩阵按键编号到标准键盘键码的映射表
+  13              { '1',  '2',  '3', 0x26 }, //数字键1、数字键2、数字键3、向上键
+  14              { '4',  '5',  '6', 0x25 }, //数字键4、数字键5、数字键6、向左键
+  15              { '7',  '8',  '9', 0x28 }, //数字键7、数字键8、数字键9、向下键
+  16              { '0', 0x1B, 0x0D, 0x27 }  //数字键0、ESC键、  回车键、 向右键
+  17          };
+  18          
+  19          unsigned char pdata KeySta[4][4] = {  //全部矩阵按键的当前状态
+  20              {1, 1, 1, 1},  {1, 1, 1, 1},  {1, 1, 1, 1},  {1, 1, 1, 1}
+  21          };
+  22          extern void Reset();
+  23          extern void GetResult();
+  24          extern void NumKeyAction(unsigned char n);
+  25          extern void OprtKeyAction(unsigned char type);
+  26          extern void LcdShowStr(unsigned char x, unsigned char y, unsigned char *str);
+  27          
+  28          void KeyAction(unsigned char keycode)
+  29          {
+  30   1        if((keycode >= '0') && (keycode <= '9'))
+  31   1        {
+  32   2          NumKeyAction(keycode - '0');  
+  33   2        }
+  34   1        else if(keycode == 0x26)
+  35   1        {
+  36   2          OprtKeyAction(0);
+  37   2        }
+  38   1        else if(keycode == 0x28)
+  39   1        {
+  40   2          OprtKeyAction(1);
+  41   2        }
+  42   1        else if(keycode == 0x25)
+  43   1        {
+  44   2          OprtKeyAction(2);
+  45   2        }
+  46   1        else if(keycode == 0x27)
+  47   1        {
+  48   2          OprtKeyAction(3);
+  49   2        }
+  50   1        else if(keycode == 0x0D)
+  51   1        {
+  52   2          GetResult();
+  53   2        }
+  54   1        else if(keycode == 0x1B)
+C51 COMPILER V9.54   KEYBOARD                                                              02/14/2024 22:11:25 PAGE 2   
+
+  55   1        {
+  56   2          Reset();
+  57   2          LcdShowStr(15, 1, "0");
+  58   2        }
+  59   1      }
+  60          /* 按键驱动函数，检测按键动作，调度相应动作函数，需在主循环中调用 */
+  61          void KeyDriver()
+  62          {
+  63   1          unsigned char i, j;
+  64   1          static unsigned char pdata backup[4][4] = {  //按键值备份，保存前一次的值
+  65   1              {1, 1, 1, 1},  {1, 1, 1, 1},  {1, 1, 1, 1},  {1, 1, 1, 1}
+  66   1          };
+  67   1          
+  68   1          for (i=0; i<4; i++)  //循环检测4*4的矩阵按键
+  69   1          {
+  70   2              for (j=0; j<4; j++)
+  71   2              {
+  72   3                  if (backup[i][j] != KeySta[i][j])    //检测按键动作
+  73   3                  {
+  74   4                      if (backup[i][j] != 0)           //按键按下时执行动作
+  75   4                      {
+  76   5                          KeyAction(KeyCodeMap[i][j]); //调用按键动作函数
+  77   5                      }
+  78   4                      backup[i][j] = KeySta[i][j];     //刷新前一次的备份值
+  79   4                  }
+  80   3              }
+  81   2          }
+  82   1      }
+  83          
+  84          /* 按键扫描函数，需在定时中断中调用，推荐调用间隔1ms */
+  85          void KeyScan()
+  86          {
+  87   1          unsigned char i;
+  88   1          static unsigned char keyout = 0;   //矩阵按键扫描输出索引
+  89   1          static unsigned char keybuf[4][4] = {  //矩阵按键扫描缓冲区
+  90   1              {0xFF, 0xFF, 0xFF, 0xFF},  {0xFF, 0xFF, 0xFF, 0xFF},
+  91   1              {0xFF, 0xFF, 0xFF, 0xFF},  {0xFF, 0xFF, 0xFF, 0xFF}
+  92   1          };
+  93   1      
+  94   1          //将一行的4个按键值移入缓冲区
+  95   1          keybuf[keyout][0] = (keybuf[keyout][0] << 1) | KEY_IN_1;
+  96   1          keybuf[keyout][1] = (keybuf[keyout][1] << 1) | KEY_IN_2;
+  97   1          keybuf[keyout][2] = (keybuf[keyout][2] << 1) | KEY_IN_3;
+  98   1          keybuf[keyout][3] = (keybuf[keyout][3] << 1) | KEY_IN_4;
+  99   1          //消抖后更新按键状态
+ 100   1          for (i=0; i<4; i++)  //每行4个按键，所以循环4次
+ 101   1          {
+ 102   2              if ((keybuf[keyout][i] & 0x0F) == 0x00)
+ 103   2              {   //连续4次扫描值为0，即4*4ms内都是按下状态时，可认为按键已稳定的按�
+             -��
+ 104   3                  KeySta[keyout][i] = 0;
+ 105   3              }
+ 106   2              else if ((keybuf[keyout][i] & 0x0F) == 0x0F)
+ 107   2              {   //连续4次扫描值为1，即4*4ms内都是弹起状态时，可认为按键已稳定的弹�
+             -��
+ 108   3                  KeySta[keyout][i] = 1;
+ 109   3              }
+ 110   2          }
+ 111   1          //执行下一次的扫描输出
+ 112   1          keyout++;         //输出索引递增
+ 113   1          keyout &= 0x03;   //索引值加到4即归零
+ 114   1          switch (keyout)   //根据索引，释放当前输出引脚，拉低下次的输出引脚
+C51 COMPILER V9.54   KEYBOARD                                                              02/14/2024 22:11:25 PAGE 3   
+
+ 115   1          {
+ 116   2              case 0: KEY_OUT_4 = 1; KEY_OUT_1 = 0; break;
+ 117   2              case 1: KEY_OUT_1 = 1; KEY_OUT_2 = 0; break;
+ 118   2              case 2: KEY_OUT_2 = 1; KEY_OUT_3 = 0; break;
+ 119   2              case 3: KEY_OUT_3 = 1; KEY_OUT_4 = 0; break;
+ 120   2              default: break;
+ 121   2          }
+ 122   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    418    ----
+   CONSTANT SIZE    =     18    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =     32    ----
+   DATA SIZE        =     17       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

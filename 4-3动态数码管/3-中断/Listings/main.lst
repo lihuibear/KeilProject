@@ -1,0 +1,92 @@
+C51 COMPILER V9.54   MAIN                                                                  01/20/2024 16:06:23 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\software\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include<reg52.h>
+   2          
+   3          sbit ADDR0 = P1^0;
+   4          sbit ADDR1 = P1^1;
+   5          sbit ADDR2 = P1^2;
+   6          sbit ADDR3 = P1^3;
+   7          sbit ENLED = P1^4;
+   8          
+   9          unsigned char code LedChar[]={
+  10            0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8,
+  11            0x80, 0x90, 0x88, 0x83, 0xC6, 0xA1, 0x86, 0x8E
+  12            };
+  13          unsigned char LedBuff[6]={
+  14            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+  15            };
+  16          unsigned char i = 0; 
+  17          unsigned int cnt = 0;
+  18          
+  19          void main()
+  20          {
+  21   1        
+  22   1        unsigned long sec = 0;
+  23   1        
+  24   1        ENLED = 0;
+  25   1        ADDR3 = 1;
+  26   1        TMOD = 0x01;
+  27   1        TH0 = 0xFC;
+  28   1        TL0 = 0x67;
+  29   1        TR0 = 1;
+  30   1        EA = 1;
+  31   1        ET0 = 1;
+  32   1      
+  33   1        while(1)
+  34   1        {
+  35   2            if(cnt >= 1000)
+  36   2          {
+  37   3            cnt = 0;
+  38   3            sec++;
+  39   3            LedBuff[0] = LedChar[sec%10];
+  40   3            LedBuff[1] = LedChar[sec/10%10];
+  41   3            LedBuff[2] = LedChar[sec/100%10];
+  42   3            LedBuff[3] = LedChar[sec/1000%10];
+  43   3            LedBuff[4] = LedChar[sec/10000%10];
+  44   3            LedBuff[5] = LedChar[sec/100000%10];
+  45   3          }       
+  46   2        }
+  47   1      }
+  48          
+  49          
+  50          void InterruptTimer0()  interrupt 1    
+  51          {
+  52   1        TH0 = 0xFC;
+  53   1        TL0 = 0x67;
+  54   1        cnt++;
+C51 COMPILER V9.54   MAIN                                                                  01/20/2024 16:06:23 PAGE 2   
+
+  55   1        P0 = 0xFF;
+  56   1        switch(i)
+  57   1        {
+  58   2          case 0: ADDR2=0; ADDR1=0; ADDR0=0; i++; P0=LedBuff[0];break;
+  59   2          case 1: ADDR2=0; ADDR1=0; ADDR0=1; i++; P0=LedBuff[1];break;
+  60   2          case 2: ADDR2=0; ADDR1=1; ADDR0=0; i++; P0=LedBuff[2];break;
+  61   2          case 3: ADDR2=0; ADDR1=1; ADDR0=1; i++; P0=LedBuff[3];break;
+  62   2          case 4: ADDR2=1; ADDR1=0; ADDR0=0; i++; P0=LedBuff[4];break;
+  63   2          case 5: ADDR2=1; ADDR1=0; ADDR0=1; i=0; P0=LedBuff[5];break;
+  64   2          default:break;
+  65   2        }
+  66   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    427    ----
+   CONSTANT SIZE    =     16    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      9       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

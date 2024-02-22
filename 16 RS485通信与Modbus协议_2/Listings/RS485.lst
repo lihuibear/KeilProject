@@ -1,0 +1,256 @@
+C51 COMPILER V9.54   RS485                                                                 02/17/2024 22:29:47 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE RS485
+OBJECT MODULE PLACED IN .\Objects\RS485.obj
+COMPILER INVOKED BY: D:\software\Keil_v5\C51\BIN\C51.EXE RS485.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Lis
+                    -tings\RS485.lst) TABS(2) OBJECT(.\Objects\RS485.obj)
+
+line level    source
+
+   1          
+   2          #include <reg52.h>
+   3          #include <intrins.h>
+   4          
+   5          sbit RS485_DIR = P1^7;  //RS485·½ÏòÑ¡ÔñÒı½Å
+   6          
+   7          bit flagOnceTxd = 0;  //µ¥´Î·¢ËÍÍê³É±êÖ¾£¬¼´·¢ËÍÍêÒ»¸ö×Ö½Ú
+   8          bit cmdArrived = 0;   //ÃüÁîµ½´ï±êÖ¾£¬¼´½ÓÊÕµ½ÉÏÎ»»úÏÂ·¢µÄÃüÁî
+   9          unsigned char cntRxd = 0;
+  10          unsigned char pdata bufRxd[40]; //´®¿Ú½ÓÊÕ»º³åÇø
+  11          
+  12          unsigned char regGroup[5];  //Modbus¼Ä´æÆ÷×é£¬µØÖ·Îª0x00¡«0x04
+  13          
+  14          extern bit flagBuzzOn;
+  15          extern void LcdShowStr(unsigned char x, unsigned char y, const unsigned char *str);
+  16          extern unsigned int GetCRC16(unsigned char *ptr,  unsigned char len);
+  17          
+  18          void ConfigUART(unsigned int baud)  //´®¿ÚÅäÖÃº¯Êı£¬baudÎª²¨ÌØÂÊ
+  19          {
+  20   1          RS485_DIR = 0; //RS485ÉèÖÃÎª½ÓÊÕ·½Ïò
+  21   1          SCON = 0x50;   //ÅäÖÃ´®¿ÚÎªÄ£Ê½1
+  22   1          TMOD &= 0x0F;  //ÇåÁãT1µÄ¿ØÖÆÎ»
+  23   1          TMOD |= 0x20;  //ÅäÖÃT1ÎªÄ£Ê½2
+  24   1          TH1 = 256 - (11059200/12/32) / baud;  //¼ÆËãT1ÖØÔØÖµ
+  25   1          TL1 = TH1;     //³õÖµµÈÓÚÖØÔØÖµ
+  26   1          ET1 = 0;       //½ûÖ¹T1ÖĞ¶Ï
+  27   1          ES  = 1;       //Ê¹ÄÜ´®¿ÚÖĞ¶Ï
+  28   1          TR1 = 1;       //Æô¶¯T1
+  29   1      }
+  30          unsigned char UartRead(unsigned char *buf, unsigned char len) //´®¿ÚÊı¾İ¶ÁÈ¡º¯Êı£¬Êı¾İ½ÓÊÕÖ¸Õëbuf£¬¶ÁÈ¡Êı¾
+             -İ³¤¶Èlen£¬·µ»ØÖµÎªÊµ¼Ê¶ÁÈ¡µ½µÄÊı¾İ³¤¶È
+  31          {
+  32   1          unsigned char i;
+  33   1          
+  34   1          if (len > cntRxd) //¶ÁÈ¡³¤¶È´óÓÚ½ÓÊÕµ½µÄÊı¾İ³¤¶ÈÊ±£¬
+  35   1          {
+  36   2              len = cntRxd; //¶ÁÈ¡³¤¶ÈÉèÖÃÎªÊµ¼Ê½ÓÊÕµ½µÄÊı¾İ³¤¶È
+  37   2          }
+  38   1          for (i=0; i<len; i++) //¿½±´½ÓÊÕµ½µÄÊı¾İ
+  39   1          {
+  40   2              *buf = bufRxd[i];
+  41   2              buf++;
+  42   2          }
+  43   1          cntRxd = 0;  //ÇåÁã½ÓÊÕ¼ÆÊıÆ÷
+  44   1          
+  45   1          return len;  //·µ»ØÊµ¼Ê¶ÁÈ¡³¤¶È
+  46   1      }
+  47          void DelayX10us(unsigned char t)  //Èí¼şÑÓÊ±º¯Êı£¬ÑÓÊ±Ê±¼ä(t*10)us
+  48          {
+  49   1          do {
+  50   2              _nop_();
+  51   2              _nop_();
+  52   2              _nop_();
+  53   2              _nop_();
+C51 COMPILER V9.54   RS485                                                                 02/17/2024 22:29:47 PAGE 2   
+
+  54   2              _nop_();
+  55   2              _nop_();
+  56   2              _nop_();
+  57   2              _nop_();
+  58   2          } while (--t);
+  59   1      }
+  60          void UartWrite(unsigned char *buf, unsigned char len) //´®¿ÚÊı¾İĞ´Èëº¯Êı£¬¼´´®¿Ú·¢ËÍº¯Êı£¬´ı·¢ËÍÊı¾İÖ¸Õëbu
+             -f£¬Êı¾İ³¤¶Èlen
+  61          {
+  62   1          RS485_DIR = 1;  //RS485ÉèÖÃÎª·¢ËÍ
+  63   1          while (len--)   //·¢ËÍÊı¾İ
+  64   1          {
+  65   2              flagOnceTxd = 0;
+  66   2              SBUF = *buf;
+  67   2              buf++;
+  68   2              while (!flagOnceTxd);
+  69   2          }
+  70   1          DelayX10us(5);  //µÈ´ı×îºóµÄÍ£Ö¹Î»Íê³É£¬ÑÓÊ±Ê±¼äÓÉ²¨ÌØÂÊ¾ö¶¨
+  71   1          RS485_DIR = 0;  //RS485ÉèÖÃÎª½ÓÊÕ
+  72   1      }
+  73          
+  74          void UartDriver() //´®¿ÚÇı¶¯º¯Êı£¬¼ì²â½ÓÊÕµ½µÄÃüÁî²¢Ö´ĞĞÏàÓ¦¶¯×÷
+  75          {
+  76   1          unsigned char i;
+  77   1          unsigned char cnt;
+  78   1          unsigned char len;
+  79   1          unsigned char buf[30];
+  80   1          unsigned char str[4];
+  81   1          unsigned int  crc;
+  82   1          unsigned char crch, crcl;
+  83   1      
+  84   1          if (cmdArrived) //ÓĞÃüÁîµ½´ïÊ±£¬¶ÁÈ¡´¦Àí¸ÃÃüÁî
+  85   1          {
+  86   2              cmdArrived = 0;
+  87   2              len = UartRead(buf, sizeof(buf)); //½«½ÓÊÕµ½µÄÃüÁî¶ÁÈ¡µ½»º³åÇøÖĞ
+  88   2              if (buf[0] == 0x01)  //ºË¶ÔµØÖ·ÒÔ¾ö¶¨ÊÇ·ñÏìÓ¦ÃüÁî£¬±¾ÀıÖĞµÄ±¾»úµØÖ·Îª0x01
+  89   2              {
+  90   3                  crc = GetCRC16(buf, len-2); //¼ÆËãCRCĞ£ÑéÖµ
+  91   3                  crch = crc >> 8;
+  92   3                  crcl = crc & 0xFF;
+  93   3                  if ((buf[len-2] == crch) && (buf[len-1] == crcl)) //ÅĞ¶ÏCRCĞ£ÑéÊÇ·ñÕıÈ·
+  94   3                  {
+  95   4                      switch (buf[1]) //°´¹¦ÄÜÂëÖ´ĞĞ²Ù×÷
+  96   4                      {
+  97   5                          case 0x03:  //¶ÁÈ¡Ò»¸ö»òÁ¬ĞøµÄ¼Ä´æÆ÷
+  98   5                              if ((buf[2] == 0x00) && (buf[3] <= 0x05)) //¼Ä´æÆ÷µØÖ·Ö§³Ö0x0000¡«0x0005
+  99   5                              {
+ 100   6                                  if (buf[3] <= 0x04)
+ 101   6                                  {
+ 102   7                                      i = buf[3];      //ÌáÈ¡¼Ä´æÆ÷µØÖ·
+ 103   7                                      cnt = buf[5];    //ÌáÈ¡´ı¶ÁÈ¡µÄ¼Ä´æÆ÷ÊıÁ¿
+ 104   7                                      buf[2] = cnt*2;  //¶ÁÈ¡Êı¾İµÄ×Ö½ÚÊı£¬Îª¼Ä´æÆ÷Êı*2£¬ÒòModbus¶¨ÒåµÄ¼Ä´æÆ÷Îª1
+             -6Î»
+ 105   7                                      len = 3;
+ 106   7                                      while (cnt--)
+ 107   7                                      {
+ 108   8                                          buf[len++] = 0x00;          //¼Ä´æÆ÷¸ß×Ö½Ú²¹0
+ 109   8                                          buf[len++] = regGroup[i++]; //¼Ä´æÆ÷µÍ×Ö½Ú
+ 110   8                                      }
+ 111   7                                  }
+ 112   6                                  else  //µØÖ·0x05Îª·äÃùÆ÷×´Ì¬
+ 113   6                                  {
+C51 COMPILER V9.54   RS485                                                                 02/17/2024 22:29:47 PAGE 3   
+
+ 114   7                                      buf[2] = 2;  //¶ÁÈ¡Êı¾İµÄ×Ö½ÚÊı
+ 115   7                                      buf[3] = 0x00;
+ 116   7                                      buf[4] = flagBuzzOn;
+ 117   7                                      len = 5;
+ 118   7                                  }
+ 119   6                                  break;
+ 120   6                              }
+ 121   5                              else  //¼Ä´æÆ÷µØÖ·²»±»Ö§³ÖÊ±£¬·µ»Ø´íÎóÂë
+ 122   5                              {
+ 123   6                                  buf[1] = 0x83;  //¹¦ÄÜÂë×î¸ßÎ»ÖÃ1
+ 124   6                                  buf[2] = 0x02;  //ÉèÖÃÒì³£ÂëÎª02-ÎŞĞ§µØÖ·
+ 125   6                                  len = 3;
+ 126   6                                  break;
+ 127   6                              }
+ 128   5                              
+ 129   5                          case 0x06:  //Ğ´Èëµ¥¸ö¼Ä´æÆ÷
+ 130   5                              if ((buf[2] == 0x00) && (buf[3] <= 0x05)) //¼Ä´æÆ÷µØÖ·Ö§³Ö0x0000¡«0x0005
+ 131   5                              {
+ 132   6                                  if (buf[3] <= 0x04)
+ 133   6                                  {
+ 134   7                                      i = buf[3];             //ÌáÈ¡¼Ä´æÆ÷µØÖ·
+ 135   7                                      regGroup[i] = buf[5];   //±£´æ¼Ä´æÆ÷Êı¾İ
+ 136   7                                      cnt = regGroup[i] >> 4; //ÏÔÊ¾µ½Òº¾§ÉÏ
+ 137   7                                      if (cnt >= 0xA)
+ 138   7                                          str[0] = cnt - 0xA + 'A';
+ 139   7                                      else
+ 140   7                                          str[0] = cnt + '0';
+ 141   7                                      cnt = regGroup[i] & 0x0F;
+ 142   7                                      if (cnt >= 0xA)
+ 143   7                                          str[1] = cnt - 0xA + 'A';
+ 144   7                                      else
+ 145   7                                          str[1] = cnt + '0';
+ 146   7                                      str[2] = '\0';
+ 147   7                                      LcdShowStr(i*3, 0, str);
+ 148   7                                  }
+ 149   6                                  else  //µØÖ·0x05Îª·äÃùÆ÷×´Ì¬
+ 150   6                                  {
+ 151   7                                      flagBuzzOn = (bit)buf[5]; //¼Ä´æÆ÷Öµ×ª»»Îª·äÃùÆ÷µÄ¿ª¹Ø
+ 152   7                                  }
+ 153   6                                  len -= 2; //³¤¶È-2ÒÔÖØĞÂ¼ÆËãCRC²¢·µ»ØÔ­Ö¡
+ 154   6                                  break;
+ 155   6                              }
+ 156   5                              else  //¼Ä´æÆ÷µØÖ·²»±»Ö§³ÖÊ±£¬·µ»Ø´íÎóÂë
+ 157   5                              {
+ 158   6                                  buf[1] = 0x86;  //¹¦ÄÜÂë×î¸ßÎ»ÖÃ1
+ 159   6                                  buf[2] = 0x02;  //ÉèÖÃÒì³£ÂëÎª02-ÎŞĞ§µØÖ·
+ 160   6                                  len = 3;
+ 161   6                                  break;
+ 162   6                              }
+ 163   5                              
+ 164   5                          default:  //ÆäËü²»Ö§³ÖµÄ¹¦ÄÜÂë
+ 165   5                              buf[1] |= 0x80;  //¹¦ÄÜÂë×î¸ßÎ»ÖÃ1
+ 166   5                              buf[2] = 0x01;   //ÉèÖÃÒì³£ÂëÎª01-ÎŞĞ§¹¦ÄÜ
+ 167   5                              len = 3;
+ 168   5                              break;
+ 169   5                      }
+ 170   4                      crc = GetCRC16(buf, len); //¼ÆËãCRCĞ£ÑéÖµ
+ 171   4                      buf[len++] = crc >> 8;    //CRC¸ß×Ö½Ú
+ 172   4                      buf[len++] = crc & 0xFF;  //CRCµÍ×Ö½Ú
+ 173   4                      UartWrite(buf, len);      //·¢ËÍÏìÓ¦Ö¡
+ 174   4                  }
+ 175   3              }
+C51 COMPILER V9.54   RS485                                                                 02/17/2024 22:29:47 PAGE 4   
+
+ 176   2          }
+ 177   1      }
+ 178          
+ 179          void UartRxMonitor(unsigned char ms)  //´®¿Ú½ÓÊÕ¼à¿Øº¯Êı
+ 180          {
+ 181   1          static unsigned char cntbkp = 0;
+ 182   1          static unsigned char idletmr = 0;
+ 183   1      
+ 184   1          if (cntRxd > 0)  //½ÓÊÕ¼ÆÊıÆ÷´óÓÚÁãÊ±£¬¼à¿Ø×ÜÏß¿ÕÏĞÊ±¼ä
+ 185   1          {
+ 186   2              if (cntbkp != cntRxd)  //½ÓÊÕ¼ÆÊıÆ÷¸Ä±ä£¬¼´¸Õ½ÓÊÕµ½Êı¾İÊ±£¬ÇåÁã¿ÕÏĞ¼ÆÊ±
+ 187   2              {
+ 188   3                  cntbkp = cntRxd;
+ 189   3                  idletmr = 0;
+ 190   3              }
+ 191   2              else
+ 192   2              {
+ 193   3                  if (idletmr < 5)  //½ÓÊÕ¼ÆÊıÆ÷Î´¸Ä±ä£¬¼´×ÜÏß¿ÕÏĞÊ±£¬ÀÛ»ı¿ÕÏĞÊ±¼ä
+ 194   3                  {
+ 195   4                      idletmr += ms;
+ 196   4                      if (idletmr >= 5)  //¿ÕÏĞÊ±¼ä³¬¹ı4¸ö×Ö½Ú´«ÊäÊ±¼ä¼´ÈÏÎªÒ»Ö¡ÃüÁî½ÓÊÕÍê±Ï
+ 197   4                      {
+ 198   5                          cmdArrived = 1; //ÉèÖÃÃüÁîµ½´ï±êÖ¾
+ 199   5                      }
+ 200   4                  }
+ 201   3              }
+ 202   2          }
+ 203   1          else
+ 204   1          {
+ 205   2              cntbkp = 0;
+ 206   2          }
+ 207   1      }
+ 208          void InterruptUART() interrupt 4  //UARTÖĞ¶Ï·şÎñº¯Êı
+ 209          {
+ 210   1        if (RI)  //½ÓÊÕµ½×Ö½Ú
+ 211   1          {
+ 212   2          RI = 0;   //ÊÖ¶¯ÇåÁã½ÓÊÕÖĞ¶Ï±êÖ¾Î»
+ 213   2              if (cntRxd < sizeof(bufRxd)) //½ÓÊÕ»º³åÇøÉĞÎ´ÓÃÍêÊ±£¬
+ 214   2              {
+ 215   3                  bufRxd[cntRxd++] = SBUF; //±£´æ½ÓÊÕ×Ö½Ú£¬²¢µİÔö¼ÆÊıÆ÷
+ 216   3              }
+ 217   2        }
+ 218   1        if (TI)  //×Ö½Ú·¢ËÍÍê±Ï
+ 219   1          {
+ 220   2          TI = 0;   //ÊÖ¶¯ÇåÁã·¢ËÍÖĞ¶Ï±êÖ¾Î»
+ 221   2              flagOnceTxd = 1;  //ÉèÖÃµ¥´Î·¢ËÍÍê³É±êÖ¾
+ 222   2        }
+ 223   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    585    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =     40    ----
+   DATA SIZE        =      8      39
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

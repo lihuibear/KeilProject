@@ -1,0 +1,76 @@
+C51 COMPILER V9.54   MAIN                                                                  02/13/2024 17:39:56 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\software\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include<reg52.h>
+   2          
+   3          unsigned long beats = 0;
+   4          void StartMotor(unsigned long angle);
+   5          void main()
+   6          {
+   7   1        EA = 1;
+   8   1        TMOD = 0x01;
+   9   1        TH0 = 0xF8;
+  10   1        TL0 = 0xCD;
+  11   1        ET0 = 1;
+  12   1        TR0 =1;
+  13   1      
+  14   1        StartMotor(360*2 + 180); //两圈半
+  15   1        while(1);
+  16   1      }
+  17          
+  18          void StartMotor(unsigned long angle) //转换节拍数
+  19          {
+  20   1        EA = 0;
+  21   1        beats = (angle*4076)/360;
+  22   1        EA = 1; // 防止被中断
+  23   1      }
+  24          
+  25          void InterruptTimer0() interrupt 1
+  26          {
+  27   1        unsigned char tmp;
+  28   1        static unsigned char index = 0;
+  29   1        unsigned char code BeatCode[8] = {
+  30   1        0x0E, 0x0C, 0x0D, 0x09, 0x0B, 0x03, 0x07, 0x06};
+  31   1      
+  32   1        TH0 = 0xF8;
+  33   1        TL0 = 0xCD;
+  34   1      
+  35   1        if(beats != 0) 
+  36   1        {
+  37   2          tmp = P1;
+  38   2          tmp = tmp & 0xF0;
+  39   2          tmp = tmp | BeatCode[index];       
+  40   2          P1 = tmp;
+  41   2          index++;
+  42   2          index = index & 0x07;
+  43   2          beats--;
+  44   2        }
+  45   1        else
+  46   1        {
+  47   2          P1 = P1 | 0x0F; //结束转动
+  48   2        }
+  49   1      
+  50   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    207    ----
+C51 COMPILER V9.54   MAIN                                                                  02/13/2024 17:39:56 PAGE 2   
+
+   CONSTANT SIZE    =      8    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      5       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
